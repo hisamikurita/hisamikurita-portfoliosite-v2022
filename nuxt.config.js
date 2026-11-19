@@ -72,6 +72,16 @@ export default {
         sizes: '180x180',
         href: '/apple-touch-icon.png'
       },
+      // webfontloaderで読み込むGoogle Fontsへの接続を先に始めておく
+      {
+        rel: 'preconnect',
+        href: 'https://fonts.googleapis.com'
+      },
+      {
+        rel: 'preconnect',
+        href: 'https://fonts.gstatic.com',
+        crossorigin: ''
+      },
     ],
     bodyAttrs: {
       oncontextmenu: 'return false'
@@ -79,7 +89,9 @@ export default {
     script: [
       {
         hid: 'GAsrc',
-        src: `https://www.googletagmanager.com/gtag/js?id=${process.env.GAID}`
+        src: `https://www.googletagmanager.com/gtag/js?id=${process.env.GAID}`,
+        // 計測用スクリプトで描画をブロックしないよう非同期で読み込む
+        async: true,
       },
       {
         hid: 'GAcode',

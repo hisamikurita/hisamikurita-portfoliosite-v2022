@@ -158,7 +158,12 @@ export default class Mesh {
       this.mesh.material.uniforms.u_diffmouse.value.y = this.diff.y;
       this.customPass.uniforms.u_diffmouse.value.x = this.diff.x;
       this.customPass.uniforms.u_diffmouse.value.y = this.diff.y;
-      this.composer.setSize(this.stage.renderParam.width, this.stage.renderParam.height);
+      // 毎フレームsetSizeするとレンダーターゲットのサイズ計算が走るので、サイズが変わった時だけ更新する
+      if (this.composerWidth !== this.stage.renderParam.width || this.composerHeight !== this.stage.renderParam.height) {
+        this.composerWidth = this.stage.renderParam.width;
+        this.composerHeight = this.stage.renderParam.height;
+        this.composer.setSize(this.composerWidth, this.composerHeight);
+      }
       this.composer.render();
     }
   }
