@@ -76,6 +76,22 @@ ScrollTrigger.scrollerProxy(asscroll.containerElement, {
 
 ScrollTrigger.addEventListener("refresh", asscroll.resize);
 
+/**
+ * モバイルはスクロールのたびにアドレスバーが出入りして画面の高さが変わる
+ * ScrollTriggerは標準でresizeのたびに全体をrefreshするため、そのたびにアニメーションの位置が飛んでガタつく
+ * タッチ端末のネイティブスクロール時は高さだけの変化ではrefreshせず、幅が変わった時(画面の回転など)だけrefreshする
+ */
+if (asscroll.controller.nativeScroll) {
+  ScrollTrigger.config({ autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load' });
+
+  let lastWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
+    ScrollTrigger.refresh();
+  });
+}
+
 export default (context, inject) => {
   inject('asscroll', asscroll);
   inject('gsap', gsap);
