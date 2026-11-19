@@ -3,7 +3,7 @@
     <div ref="IntroContainer" class="intro-container">
       <span ref="IntroSpacer01" class="intro-spacer-01"></span>
       <span ref="IntroSpacer02" class="intro-spacer-02"></span>
-      <div ref="IntroWrapper" class="intro-wrapper">
+      <div ref="IntroWrapper" class="intro-wrapper" :class="{ 'is-sticky': isSticky }">
         <AppCircleBg ref="IntroCircleBg" :state="isCircleBgState" :modifier="'about-intro'" />
         <p ref="IntroReadText" class="intro-read-text">INTRODUCTION INTRODUCTION INT</p>
         <div ref="IntroBg" class="intro-bg">
@@ -80,6 +80,7 @@ export default {
     return {
       isTextSegmentState: 'default',
       isCircleBgState: 'default',
+      isSticky: false,
       buffer: { value: 0 },
     }
   },
@@ -140,7 +141,7 @@ export default {
     this.mObserver.unobserve(this.mObserve)
     this.mObserver = null
     // リセット
-    this.fixSection.kill()
+    if (this.fixSection) this.fixSection.kill()
     this.scrollTl.kill()
     this.IntroImgParallaxAnimation.kill()
     this.iObserver.unobserve(this.observe)
@@ -149,6 +150,9 @@ export default {
   },
 
   mounted() {
+    // タッチ端末はstickyで固定する（pinによるガタつき防止）
+    this.isSticky = this.$canUseStickyPin()
+
     this.stage = new Stage(this.$refs.IntroBgCanvas, this.$refs.IntroBgCanvas)
     this.stage.init()
 
@@ -197,7 +201,8 @@ export default {
   methods: {
     setupScrollAnimation() {
       // セクション固定 グローバル関数(fixSection)
-      this.fixSection = this.$fixSection(this.$refs.IntroWrapper, this.$SITECONFIG.isTouch, 5500)
+      // stickyの時はCSSで固定するのでpinしない
+      if (!this.isSticky) this.fixSection = this.$fixSection(this.$refs.IntroWrapper, this.$SITECONFIG.isTouch, 5500)
 
       const textInit = this.$SITECONFIG.isPc ? vw(1280) : vwSp(750)
       const textMove = this.$SITECONFIG.isPc ? vw(-1758 + 1280) : vwSp(-1858 + 750)
@@ -210,8 +215,10 @@ export default {
       // タイムライン
       this.scrollTl = this.$gsap.timeline({
         scrollTrigger: {
-          trigger: this.$refs.IntroReadText,
-          start: 'center center',
+          // stickyの要素はスクロール位置で座標が変わるため、stickyの時は親コンテナを基準にする
+          // (テキストはラッパーの上下中央にあるので、親の'top top'と同じ位置になる)
+          trigger: this.isSticky ? this.$refs.IntroContainer : this.$refs.IntroReadText,
+          start: this.isSticky ? 'top top' : 'center center',
           end: () => `+=${3500 - window.innerHeight}px`,
           scrub: 0.8,
           invalidateOnRefresh: true,
@@ -270,7 +277,7 @@ export default {
         {
           scrollTrigger: {
             once: true,
-            trigger: this.$refs.IntroWrapper,
+            trigger: this.isSticky ? this.$refs.IntroContainer : this.$refs.IntroWrapper,
             onEnter: () => {
               this.isCircleBgState = 'extend'
             },
@@ -351,6 +358,11 @@ export default {
 
   @include sp() {
     overflow: hidden;
+
+    // overflow: hiddenだとposition: stickyが効かないのでclipにする
+    @supports (overflow: clip) {
+      overflow: clip;
+    }
   }
 }
 
@@ -388,6 +400,10 @@ export default {
   left: 0;
   width: 100%;
   height: var(--viewportHeight, 100vh) !important;
+
+  &.is-sticky {
+    position: sticky;
+  }
 }
 
 .intro-read-text {

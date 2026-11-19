@@ -43,6 +43,21 @@ const fixSection = (trigger, deveice, height) => {
   })
 }
 
+/**
+ * タッチ端末のネイティブスクロール時は、JSのpinではなくCSSのposition: stickyでセクションを固定する
+ * pinはスクロールイベント→JSでtransform/fixedを切り替えるため、モバイルの慣性スクロールと1フレームずれてガタつく
+ * stickyはブラウザのコンポジタ側で固定されるのでズレない
+ * - マウス/トラックパッドがつながっている端末はASScrollがスムーススクロールに切り替わるため対象外
+ * - overflow: clip 非対応ブラウザは祖先のoverflow: hiddenでstickyが効かないため従来のpinを使う
+ */
+const canUseStickyPin = () => {
+  return (
+    asscroll.controller.nativeScroll &&
+    !window.matchMedia('(any-pointer: fine)').matches &&
+    window.CSS && CSS.supports('overflow', 'clip')
+  )
+}
+
 ScrollTrigger.defaults({
   scroller: asscroll.containerElement
 })
@@ -68,4 +83,5 @@ export default (context, inject) => {
   inject('Draggable', Draggable);
   inject('EASING', EASING);
   inject('fixSection', fixSection);
+  inject('canUseStickyPin', canUseStickyPin);
 }

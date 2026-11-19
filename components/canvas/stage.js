@@ -25,7 +25,8 @@ export default class Stage {
     this.material = null;
     this.mesh = null;
     this.isInitialized = false;
-    this.devicePixelRatio = window.devicePixelRatio;
+    // 高解像度のスマホ(DPR3)だと描画負荷が高くスクロールがカクつくので2までにする
+    this.devicePixelRatio = Math.min(window.devicePixelRatio, 2);
   }
 
   init() {
@@ -88,6 +89,12 @@ export default class Stage {
   }
 
   onResize() {
+    // 毎フレーム呼ばれるため、サイズが変わった時だけ更新する
+    // (renderer.setSizeはcanvasのバッファを作り直すので重い)
+    const width = !this.wrapper ? window.innerWidth : this.wrapper.clientWidth;
+    const height = !this.wrapper ? window.innerHeight : this.wrapper.clientHeight;
+    if (width === this.renderParam.width && height === this.renderParam.height) return;
+
     this._setCamera();
   }
 

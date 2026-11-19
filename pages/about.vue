@@ -107,5 +107,10 @@ export default {
 <style lang="scss" scoped>
 .about {
   overflow: hidden;
+
+  // overflow: hiddenだと子要素のposition: stickyが効かないのでclipにする
+  @supports (overflow: clip) {
+    overflow: clip;
+  }
 }
 </style>

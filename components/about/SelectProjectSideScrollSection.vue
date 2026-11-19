@@ -1,6 +1,6 @@
 <template>
   <div ref="Project" class="project">
-    <div ref="ProjectWrapper" class="project-wrapper">
+    <div ref="ProjectWrapper" class="project-wrapper" :class="{ 'is-sticky': isSticky }">
       <div class="project-canvas">
         <canvas ref="Canvas"></canvas>
       </div>
@@ -90,6 +90,7 @@ export default {
       isCircleBgState: '',
       isTextUnderlineState: '',
       isTextAnimationState: false,
+      isSticky: false,
     }
   },
 
@@ -112,7 +113,7 @@ export default {
        * ハンバガーメニューが開いた時
        */
       if (this.hambergerMenuState) {
-        this.fixSection.pause()
+        if (this.fixSection) this.fixSection.pause()
         //
       } else if (!this.hambergerMenuState) {
         /**
@@ -130,6 +131,9 @@ export default {
   },
 
   mounted() {
+    // タッチ端末はstickyで固定する（pinによるガタつき防止）
+    this.isSticky = this.$canUseStickyPin()
+
     // 初期宣言
     this.deveiceOffsetStart = this.$SITECONFIG.isPc ? 80 : 0
     this.deveiceOffsetWidth = this.$SITECONFIG.isPc ? 80 + 120 + 80 : 0
@@ -159,6 +163,8 @@ export default {
       this.$gsap.to(tweenPosition, {
         duration: 1.0,
         ease: 'none',
+        // 毎フレーム新しいtweenを作るので、前のtweenを止めて溜まらないようにする
+        overwrite: true,
         value: this.$asscroll.currentPos,
       })
       this.particle._drawParticles(this.$asscroll.currentPos, tweenPosition.value)
@@ -203,7 +209,7 @@ export default {
 
   beforeDestroy() {
     // リセット
-    this.fixSection.kill()
+    if (this.fixSection) this.fixSection.kill()
     this.synchronousScroll.kill()
     this.textAnimation.kill()
     this.iObserver.unobserve(this.observe)
@@ -221,7 +227,12 @@ export default {
   methods: {
     setupScrollAnimation() {
       // セクション固定 グローバル関数(fixSection)
-      this.fixSection = this.$fixSection(this.$refs.ProjectWrapper, this.$SITECONFIG.isTouch, 3500)
+      // stickyの時はCSSで固定するのでpinしない
+      if (!this.isSticky) this.fixSection = this.$fixSection(this.$refs.ProjectWrapper, this.$SITECONFIG.isTouch, 3500)
+
+      // stickyの要素はスクロール位置で座標が変わるため、stickyの時は親コンテナを基準にする
+      // (ラッパーは画面の高さなので、ラッパーの'center center'は親の'top top'と同じ位置になる)
+      const trigger = this.isSticky ? this.$refs.Project : this.$refs.ProjectWrapper
 
       // リストをスクロール量に応じてx軸を移動させる
       this.synchronousScroll = this.$gsap.fromTo(
@@ -233,9 +244,9 @@ export default {
           x: () => -(this.$refs.ProjectList.clientWidth * this.deveiceOffsetRatio - this.$refs.ProjectWrapper.clientWidth + this.deveiceOffsetWidth),
           ease: 'none',
           scrollTrigger: {
-            start: 'center center',
+            start: this.isSticky ? 'top top' : 'center center',
             end: () => `+=${3500 - window.innerHeight}px`,
-            trigger: this.$refs.ProjectWrapper,
+            trigger,
             scrub: 0.8,
             invalidateOnRefresh: true,
           },
@@ -248,7 +259,7 @@ export default {
         {
           scrollTrigger: {
             once: true,
-            trigger: this.$refs.ProjectWrapper,
+            trigger,
             onEnter: () => {
               this.$gsap.to(this.wrapper, {
                 duration: this.$SITECONFIG.fullDuration,
@@ -338,6 +349,10 @@ export default {
 
   @include sp() {
     height: var(--viewportSpHeight, 100vh) !important;
+  }
+
+  &.is-sticky {
+    position: sticky;
   }
 }
 
