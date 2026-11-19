@@ -258,8 +258,9 @@ export default {
           {
             x: 0,
             y: 0,
-            width: () => window.innerWidth,
-            height: () => window.innerHeight,
+            // stickyの時はrefreshしないため、画面サイズを数値で持たず親(画面いっぱい)に合わせる
+            width: this.isSticky ? '100%' : () => window.innerWidth,
+            height: this.isSticky ? '100%' : () => window.innerHeight,
             borderRadius: 0,
 
             onComlete: () => {
@@ -403,6 +404,18 @@ export default {
 
   &.is-sticky {
     position: sticky;
+
+    // アドレスバーの出入りで高さが変わらないよう、アドレスバーが隠れた時の高さで固定する
+    // stylelint v13 は lvh を知らないため除外する
+    /* stylelint-disable unit-no-unknown */
+    @supports (height: 100lvh) {
+      height: 100lvh !important;
+
+      .intro-bg-clip {
+        height: 100lvh;
+      }
+    }
+    /* stylelint-enable unit-no-unknown */
   }
 }
 
