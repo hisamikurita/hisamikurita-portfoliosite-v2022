@@ -186,11 +186,17 @@ export default {
       // (右クリックメニューはbodyのoncontextmenuで無効にしているので対象外)
       // マウスがウィンドウの外に出た時
       document.addEventListener('mouseout', this.onMouseOutWindow)
+      // ほかのウィンドウやタブに切り替えた時。戻った直後はマウスが動くまでOSのカーソルが出ることがあるので、
+      // 次にマウスが動くまで隠しておく
+      window.addEventListener('blur', this.hide)
+      document.addEventListener('visibilitychange', this.onVisibilityChange)
     }
   },
   beforeDestroy() {
     window.removeEventListener('mousemove', this.onMouseMove)
     document.removeEventListener('mouseout', this.onMouseOutWindow)
+    window.removeEventListener('blur', this.hide)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
   },
   methods: {
     onMouseDown() {
@@ -247,7 +253,13 @@ export default {
     },
     onMouseOutWindow(e) {
       // relatedTargetがない = ウィンドウの外に出た
-      if (!e.relatedTarget) this.setHidden(true)
+      if (!e.relatedTarget) this.hide()
+    },
+    onVisibilityChange() {
+      if (document.hidden) this.hide()
+    },
+    hide() {
+      this.setHidden(true)
     },
     setHidden(hidden) {
       if (this.isHidden === hidden) return
