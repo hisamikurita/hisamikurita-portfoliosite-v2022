@@ -73,8 +73,13 @@ export default {
     this.isAllResetAnimation = false
     this.mouseX = window.innerWidth / 2
     this.mouseY = 0
+    // マウスに遅れて追従するカードの位置(画面上の座標)
+    this.cardPos = { x: this.mouseX, y: this.mouseY }
+    // 各行の色の状態(変わった時だけアニメーションさせる)
+    this.itemColorStates = []
     for (let i = 0; i < this.items.length; i++) {
       this.animationFlags.push(false)
+      this.itemColorStates.push(null)
     }
     this.observe = this.$refs.Award
 
@@ -97,12 +102,12 @@ export default {
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              this.$gsap.ticker.add(this.cardScrollPos)
+              this.$asscroll.on('update', this.cardScrollPos)
               this.$gsap.ticker.add(this.cardScrollAnimation)
               window.removeEventListener('mousemove', this.saveMousemove)
               window.addEventListener('mousemove', this.onMousemove)
             } else {
-              this.$gsap.ticker.remove(this.cardScrollPos)
+              this.$asscroll.off('update', this.cardScrollPos)
               this.$gsap.ticker.remove(this.cardScrollAnimation)
               window.addEventListener('mousemove', this.saveMousemove)
               window.removeEventListener('mousemove', this.onMousemove)
@@ -119,8 +124,9 @@ export default {
     this.iObserver.unobserve(this.observe)
     this.iObserver = null
     if (this.$SITECONFIG.isNoTouch) {
-      this.$gsap.ticker.remove(this.cardScrollPos)
+      this.$asscroll.off('update', this.cardScrollPos)
       this.$gsap.ticker.remove(this.cardScrollAnimation)
+      this.$gsap.killTweensOf(this.cardPos)
       window.removeEventListener('mousemove', this.onMousemove)
       window.removeEventListener('mousemove', this.saveMousemove)
       this.animationObserver.unobserve(this.observe)
@@ -129,15 +135,21 @@ export default {
   },
 
   methods: {
+    /**
+     * カードの位置を更新する
+     * 慣性スクロールがページを動かすのと同じフレーム(ASScrollのupdate)で、
+     * 実際に表示されているスクロール位置(currentPos)を足して置くことで、スクロール中もカードがずれない
+     * (以前は目標位置(targetPos)を使い、毎フレーム新しいtweenを重ねていたため、カードが行ったり来たりしていた)
+     */
     cardScrollPos() {
       if (this.hambergerMenuState) return
-      this.currentY = this.mouseY + this.$asscroll.targetPos
+      const scrollPos = this.$asscroll.currentPos
+      // 当たり判定用(マウスの位置をページ上の座標にしたもの)
+      this.currentY = this.mouseY + scrollPos
 
-      this.$gsap.to(this.$refs.AwardCardArea, {
-        duration: 0.4,
-        ease: 'none',
-        x: this.mouseX,
-        y: this.currentY,
+      this.$gsap.set(this.$refs.AwardCardArea, {
+        x: this.cardPos.x,
+        y: this.cardPos.y + scrollPos,
       })
     },
     cardScrollAnimation() {
@@ -167,13 +179,13 @@ export default {
         const endPosX = startPosX + rect.width
 
         if (this.currentY < startPosY || this.mouseX < startPosX) {
-          this.colorFadeOut(target)
+          this.colorFadeOut(target, i)
           this.cardFadeOut(i)
         } else if (this.currentY >= startPosY && this.currentY < endPosY && this.mouseX >= startPosX && this.mouseX < endPosX) {
-          this.colorFadeIn(target)
+          this.colorFadeIn(target, i)
           this.cardFadeIn(this.cards[i], i)
         } else {
-          this.colorFadeOut(target)
+          this.colorFadeOut(target, i)
           this.cardFadeOut(i)
         }
       }
@@ -187,13 +199,15 @@ export default {
 
       this.mouseX = e.clientX - this.cardHalfWidth
       this.mouseY = e.clientY - this.cardHalfHeight
-      this.currentY = this.mouseY + this.$asscroll.targetPos
+      this.currentY = this.mouseY + this.$asscroll.currentPos
 
-      this.$gsap.to(this.$refs.AwardCardArea, {
+      // マウスへの追従(画面上の座標)だけをtweenする。前のtweenは止めて重ならないようにする
+      this.$gsap.to(this.cardPos, {
         duration: 0.4,
         ease: 'none',
         x: this.mouseX,
-        y: this.currentY,
+        y: this.mouseY,
+        overwrite: true,
       })
     },
     cardFadeIn(target, index) {
@@ -237,21 +251,28 @@ export default {
         },
       })
     },
-    colorFadeIn(target) {
+    colorFadeIn(target, index) {
+      // 毎フレーム呼ばれるので、状態が変わった時だけアニメーションさせる
+      if (this.itemColorStates[index] === 'in') return
+      this.itemColorStates[index] = 'in'
       this.$gsap.to(target, {
         duration: this.$SITECONFIG.baseDuration,
         ease: this.$EASING.colorAndOpacity,
         color: '#ffffff',
+        overwrite: true,
       })
       this.$gsap.set(target, {
         zIndex: 2,
       })
     },
-    colorFadeOut(target) {
+    colorFadeOut(target, index) {
+      if (this.itemColorStates[index] === 'out') return
+      this.itemColorStates[index] = 'out'
       this.$gsap.to(target, {
         duration: this.$SITECONFIG.baseDuration,
         ease: this.$EASING.colorAndOpacity,
         color: '#828282',
+        overwrite: true,
       })
       this.$gsap.set(target, {
         zIndex: 1,
