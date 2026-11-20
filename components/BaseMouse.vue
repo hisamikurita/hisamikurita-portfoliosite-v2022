@@ -180,7 +180,17 @@ export default {
     this.mouseHalfHeight = this.mouseArea.clientHeight / 2
 
     // タッチイベントではない時、マウス追従
-    if (this.$SITECONFIG.isNoTouch) window.addEventListener('mousemove', this.onMouseMove)
+    if (this.$SITECONFIG.isNoTouch) {
+      window.addEventListener('mousemove', this.onMouseMove)
+      // OSのカーソルが見える場面では、カスタムカーソルを隠して2つ同時に見えないようにする
+      // (右クリックメニューはbodyのoncontextmenuで無効にしているので対象外)
+      // マウスがウィンドウの外に出た時
+      document.addEventListener('mouseout', this.onMouseOutWindow)
+    }
+  },
+  beforeDestroy() {
+    window.removeEventListener('mousemove', this.onMouseMove)
+    document.removeEventListener('mouseout', this.onMouseOutWindow)
   },
   methods: {
     onMouseDown() {
@@ -231,6 +241,33 @@ export default {
         x: posX,
         y: posY,
       })
+
+      // スクロールバーの上はブラウザの仕様でOSのカーソルになるので、カスタムカーソルを隠す
+      this.setHidden(this.isOverScrollbar(e))
+    },
+    onMouseOutWindow(e) {
+      // relatedTargetがない = ウィンドウの外に出た
+      if (!e.relatedTarget) this.setHidden(true)
+    },
+    setHidden(hidden) {
+      if (this.isHidden === hidden) return
+      this.isHidden = hidden
+      this.mouseArea.classList.toggle('is-hidden', hidden)
+    },
+    /**
+     * マウスがスクロールバーの上にあるか
+     * スクロールバーがある要素で、マウスの位置が中身の幅(clientWidth)・高さ(clientHeight)を超えていればスクロールバーの上
+     */
+    isOverScrollbar(e) {
+      const target = e.target
+      if (!target || !target.getBoundingClientRect || target === document.documentElement) return false
+      const style = getComputedStyle(target)
+      const borderX = parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth)
+      const borderY = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth)
+      const scrollbarX = target.offsetWidth - target.clientWidth - borderX
+      const scrollbarY = target.offsetHeight - target.clientHeight - borderY
+      if (scrollbarX <= 0 && scrollbarY <= 0) return false
+      return (scrollbarX > 0 && e.offsetX >= target.clientWidth) || (scrollbarY > 0 && e.offsetY >= target.clientHeight)
     },
   },
 }
@@ -250,6 +287,11 @@ export default {
   pointer-events: none;
   opacity: 0;
   transform: translate(40px, calc(var(--viewportHeight) - 80px)) scale(0);
+
+  // OSのカーソルが見えている時は隠す
+  &.is-hidden {
+    visibility: hidden;
+  }
 }
 
 .mouse-action {
