@@ -117,6 +117,7 @@ export default {
     '~/plugins/asscroll-and-gsap.client.js',
     '~/plugins/constants.js',
     '~/plugins/check-device.client.js',
+    '~/plugins/prevent-native-drag.client.js',
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
