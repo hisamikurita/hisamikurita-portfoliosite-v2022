@@ -18,6 +18,12 @@ body {
   cursor: none !important;
 }
 
+// 画像やリンクをドラッグした時にブラウザのドラッグが始まらないようにする(始まるとデフォルトカーソルが出る)
+img,
+a {
+  -webkit-user-drag: none;
+}
+
 *::selection {
   background: $darkBlack;
   color: $white;
