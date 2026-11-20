@@ -149,6 +149,8 @@ export default {
     this.cardAngle = 0
     this.iObserverFadeIn = null
     this.iObserverParallax = null
+    // 表示アニメーションが終わったか
+    this.isFadeInComplete = !this.viewAnimation
 
     // SPの時は任意(spAnimation = false)で,処理を返す
     // デフォルトではSPもアニメーションする
@@ -202,6 +204,10 @@ export default {
           })
         },
       })
+
+      // 表示アニメーション中にカードに触れると、Draggableがy方向のtweenを止めてしまい
+      // カードが下に残ったまま出てこなくなるので、表示アニメーションが終わるまでドラッグさせない
+      if (!this.isFadeInComplete) this.drag[0].disable()
     },
 
     fadeInAnimation() {
@@ -211,6 +217,10 @@ export default {
         ease: this.$EASING.transform,
         y: -280,
         rotate: 0,
+        onComplete: () => {
+          this.isFadeInComplete = true
+          if (this.drag) this.drag[0].enable()
+        },
       })
     },
 
