@@ -557,10 +557,25 @@ export default {
       container.style.overflowY = 'hidden'
       // 止まった位置からスクロールを始める
       this.scroll.value = container.scrollTop
+
+      // overflow: hiddenの間はコンテナが画面いっぱいのスクロール要素として扱われなくなり、
+      // アドレスバーが隠れて画面が伸びた時にコンテナが下まで伸びず、bodyの黒い背景が見えてしまう
+      // そのため、ロック中はコンテナの高さを画面の高さに合わせる
+      this.fitTouchScrollHeight()
+      window.addEventListener('resize', this.fitTouchScrollHeight)
     },
     unlockTouchScroll() {
       if (!this.$asscroll.controller.nativeScroll) return
-      this.$asscroll.containerElement.style.overflowY = ''
+      const container = this.$asscroll.containerElement
+      container.style.overflowY = ''
+      container.style.bottom = ''
+      container.style.height = ''
+      window.removeEventListener('resize', this.fitTouchScrollHeight)
+    },
+    fitTouchScrollHeight() {
+      const container = this.$asscroll.containerElement
+      container.style.bottom = 'auto'
+      container.style.height = `${window.innerHeight}px`
     },
     setHeight() {
       this.$gsap.set(this.$refs.PickupInner, {
