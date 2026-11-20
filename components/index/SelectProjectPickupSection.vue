@@ -145,6 +145,7 @@ export default {
     // this.$gsap.ticker.remove(this.pRaf)
     this.removeSceneEvent()
     this.resetDefaultPreEvent()
+    this.unlockTouchScroll()
     window.removeEventListener('resize', this.pResize)
   },
 
@@ -165,6 +166,8 @@ export default {
         this.$gsap.ticker.remove(this.pickupToTopEnterScroll)
         // 慣性スクロールを無効にする
         this.$asscroll.disable({ inputOnly: true })
+        // タッチ端末の慣性スクロールを止める
+        this.lockTouchScroll()
         // デフォルトのイベントをストップする
         this.stopDefaultPreEvent()
         // ホイールイベント不可、デフォルトの操作不可時間より長くしておく
@@ -255,6 +258,8 @@ export default {
         },
         onComplete: () => {
           setTimeout(() => {
+            // タッチ端末のスクロールを戻す
+            this.unlockTouchScroll()
             // 慣性スクロール有効
             this.$asscroll.enable()
             setTimeout(() => {
@@ -307,6 +312,8 @@ export default {
         this.$gsap.ticker.remove(this.pickupToBottomEnterScroll)
         // 慣性スクロールを無効にする
         this.$asscroll.disable({ inputOnly: true })
+        // タッチ端末の慣性スクロールを止める
+        this.lockTouchScroll()
         // デフォルトのイベントをストップする
         this.stopDefaultPreEvent()
         // ホイールイベント不可、デフォルトの操作不可時間より長くしておく
@@ -391,6 +398,8 @@ export default {
         },
         onComplete: () => {
           setTimeout(() => {
+            // タッチ端末のスクロールを戻す
+            this.unlockTouchScroll()
             // 慣性スクロール有効
             this.$asscroll.enable()
             // 下から侵入する監視を加える
@@ -537,6 +546,22 @@ export default {
       this.$refs.Pickup.classList.add(`is-pickup-scene-0${this.pickupSectionCurrentNum}`)
     },
 
+    /**
+     * タッチ端末(ネイティブスクロール)の時、スクロールを奪う前に慣性スクロールを止める
+     * 指を離した後の慣性スクロールはpreventDefaultでは止まらず、JSのscrollToと毎フレーム取り合って画面が上下にガタつくため、
+     * スクロールするコンテナをoverflow: hiddenにして止める(scrollToでの移動はhiddenでもできる)
+     */
+    lockTouchScroll() {
+      if (!this.$asscroll.controller.nativeScroll) return
+      const container = this.$asscroll.containerElement
+      container.style.overflowY = 'hidden'
+      // 止まった位置からスクロールを始める
+      this.scroll.value = container.scrollTop
+    },
+    unlockTouchScroll() {
+      if (!this.$asscroll.controller.nativeScroll) return
+      this.$asscroll.containerElement.style.overflowY = ''
+    },
     setHeight() {
       this.$gsap.set(this.$refs.PickupInner, {
         height: window.innerHeight,
