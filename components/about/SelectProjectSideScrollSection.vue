@@ -353,6 +353,17 @@ export default {
 
   &.is-sticky {
     position: sticky;
+
+    // SPは読み込み時の画面の高さで固定しているため、アドレスバーが隠れて画面が伸びると
+    // 下に隙間ができて黒く見える。アドレスバーが隠れた時の高さ(100lvh)にして隙間をなくす
+    // stylelint v13 は lvh を知らないため除外する
+    /* stylelint-disable unit-no-unknown */
+    @supports (height: 100lvh) {
+      @include sp() {
+        height: 100lvh !important;
+      }
+    }
+    /* stylelint-enable unit-no-unknown */
   }
 }
 
